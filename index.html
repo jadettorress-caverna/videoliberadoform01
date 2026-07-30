@@ -833,6 +833,8 @@ const webhookURL = 'https://hook.us1.make.com/911m5rq0yk7ec4ay5p2l3e9q8vj57jc3';
 const mainForm = document.querySelector('form');
 if (mainForm) {
   mainForm.addEventListener('submit', function(e) {
+    e.preventDefault(); // Impede a página de recarregar imediatamente
+
     // Pega os valores preenchidos no formulário
     const payload = {
       nome: document.querySelector('[name="nome"]')?.value || '',
@@ -848,9 +850,12 @@ if (mainForm) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
-    }).catch(err => console.error('Erro Make:', err));
+    })
+    .then(response => {
+      console.log('Enviado com sucesso para o Make!');
+    })
+    .catch(err => console.error('Erro Make:', err));
   });
-}
 }
 </script>
 
