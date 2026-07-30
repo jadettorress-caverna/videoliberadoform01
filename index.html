@@ -677,6 +677,9 @@ function handleMomentoChoice() {
   goTo('screen-form-4');
 }
 
+// URL do webhook do Make.com — recebe o lead e distribui pro Google Sheets
+const MAKE_WEBHOOK_URL = 'https://hook.us1.make.com/911m5rq0yk7ec4ay5p2l3e9q8vj57jc3';
+
 async function saveLeadToStorage() {
   const nome = document.getElementById('f-nome').value.trim();
   const instagram = document.getElementById('f-instagram').value.trim();
@@ -686,12 +689,32 @@ async function saveLeadToStorage() {
   const momento = momentoEl ? momentoEl.value : '';
   const lead = { nome, instagram, telefone, nicho, momento, timestamp: new Date().toISOString() };
 
+  // Salva localmente no artefato (útil pra conferir no painel admin durante testes)
   try {
     const key = 'lead:' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
     await window.storage.set(key, JSON.stringify(lead), true);
   } catch (err) {
-    console.error('Erro ao salvar lead:', err);
+    console.error('Erro ao salvar lead localmente:', err);
   }
+
+  // Envia pro Make.com em segundo plano — é isso que alimenta o Google Sheets de verdade
+  try {
+    await fetch(MAKE_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nome: nome,
+        instagram: instagram,
+        telefone: telefone,
+        nicho: nicho,
+        momento: momento,
+        data: new Date().toLocaleString('pt-BR')
+      })
+    });
+  } catch (err) {
+    console.error('Erro ao enviar lead pro Make:', err);
+  }
+
   return lead;
 }
 
@@ -827,35 +850,6 @@ async function toggleAdmin() {
   } catch (err) {
     listEl.innerHTML = '<p style="color:#E8846A; font-family:var(--font-body); font-size:13px;">Erro ao carregar leads.</p>';
   }
-  // === INTEGRAÇÃO MAKE.COM ===
-const webhookURL = 'https://hook.us1.make.com/911m5rq0yk7ec4ay5p2l3e9q8vj57jc3';
-
-const mainForm = document.querySelector('form');
-if (mainForm) {
-  mainForm.addEventListener('submit', function(e) {
-    e.preventDefault(); // Impede a página de recarregar imediatamente
-
-    // Pega os valores preenchidos no formulário
-    const payload = {
-      nome: document.querySelector('[name="nome"]')?.value || '',
-      instagram: document.querySelector('[name="instagram"]')?.value || '',
-      telefone: document.querySelector('[name="telefone"]')?.value || '',
-      nicho: document.querySelector('[name="nicho"]')?.value || '',
-      momento: document.querySelector('[name="momento"]')?.value || '',
-      data: new Date().toLocaleString('pt-BR')
-    };
-
-    // Dispara em segundo plano para o Make
-    fetch(webhookURL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(response => {
-      console.log('Enviado com sucesso para o Make!');
-    })
-    .catch(err => console.error('Erro Make:', err));
-  });
 }
 </script>
 
