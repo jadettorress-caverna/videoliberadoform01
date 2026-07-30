@@ -827,6 +827,30 @@ async function toggleAdmin() {
   } catch (err) {
     listEl.innerHTML = '<p style="color:#E8846A; font-family:var(--font-body); font-size:13px;">Erro ao carregar leads.</p>';
   }
+  // === INTEGRAÇÃO MAKE.COM ===
+const webhookURL = 'https://hook.us1.make.com/911m5rq0yk7ec4ay5p2l3e9q8vj57jc3';
+
+const mainForm = document.querySelector('form');
+if (mainForm) {
+  mainForm.addEventListener('submit', function(e) {
+    // Pega os valores preenchidos no formulário
+    const payload = {
+      nome: document.querySelector('[name="nome"]')?.value || '',
+      instagram: document.querySelector('[name="instagram"]')?.value || '',
+      telefone: document.querySelector('[name="telefone"]')?.value || '',
+      nicho: document.querySelector('[name="nicho"]')?.value || '',
+      momento: document.querySelector('[name="momento"]')?.value || '',
+      data: new Date().toLocaleString('pt-BR')
+    };
+
+    // Dispara em segundo plano para o Make
+    fetch(webhookURL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(err => console.error('Erro Make:', err));
+  });
+}
 }
 </script>
 
