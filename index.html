@@ -631,7 +631,7 @@ body {
 // ===================== CONFIGURAÇÃO =====================
 // TROCAR: número de WhatsApp real da Jade/Kadna, formato internacional sem espaços (ex: 5598999999999)
 const WHATSAPP_NUMBER = '5599984924945';
-const REVEAL_AT_SECONDS = 465; // 7min45s — momento exato da fala "clica aqui"
+const REVEAL_AT_SECONDS = 396; // 70% de 9min25s (565s) — ajustável se quiser 50% (283s) ou outro valor
 
 // ===================== NAVEGAÇÃO ENTRE TELAS =====================
 function goTo(screenId) {
@@ -795,11 +795,11 @@ function initVideoTracking() {
     }
   });
 
-  // Rede de segurança: se em 3 minutos a lead ainda não liberou o botão
-  // (ex: falha de comunicação com o player), libera mesmo assim.
+  // Rede de segurança: caso a comunicação real com o player falhe, libera no mesmo
+  // instante-alvo mesmo assim, calculado a partir de REVEAL_AT_SECONDS.
   fallbackTimer = setTimeout(function() {
     revealWhatsapp();
-  }, 180000);
+  }, REVEAL_AT_SECONDS * 1000);
 }
 
 function updateProgress(seconds, duration) {
