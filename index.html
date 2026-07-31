@@ -601,7 +601,7 @@ body {
     <div class="video-wrap">
       <!-- VÍDEO: Vimeo -->
       <iframe id="video-player"
-        src="https://player.vimeo.com/video/1214424367?title=0&byline=0&portrait=0"
+        src="https://player.vimeo.com/video/1214424367?title=0&byline=0&portrait=0&api=1&player_id=video-player"
         title="Vídeo Caverna" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen>
       </iframe>
     </div>
@@ -787,8 +787,11 @@ function initVideoTracking() {
       subscribeTimeupdate();
     }
     // A cada atualização de tempo, o Vimeo entrega os segundos já assistidos
-    if (data.event === 'timeupdate' && data.data && typeof data.data.seconds === 'number') {
-      updateProgress(data.data.seconds, data.data.duration);
+    if (data.event === 'timeupdate') {
+      const info = data.data || data; // tolera variações de formato entre versões do player
+      if (typeof info.seconds === 'number') {
+        updateProgress(info.seconds, info.duration);
+      }
     }
   });
 
