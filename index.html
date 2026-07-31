@@ -599,10 +599,10 @@ body {
     <p class="hero-sub" style="text-align:center; margin-left:auto; margin-right:auto; font-size:14px; line-height:1.5; margin-top:14px; margin-bottom:16px;">Agora você vai descobrir como transformar sua bagagem em um programa online que vale a altura da sua jornada, <span style="color:var(--gold);">sem depender da agenda lotada para vender.</span></p>
 
     <div class="video-wrap">
-      <!-- VÍDEO PROVISÓRIO: trocar o VIDEO_ID abaixo pelo vídeo final quando gravado -->
-      <iframe id="yt-player"
-        src="https://www.youtube.com/embed/BPhjFerbhtQ?enablejsapi=1&rel=0"
-        title="Vídeo Caverna" allow="autoplay; encrypted-media" allowfullscreen>
+      <!-- VÍDEO: Vimeo -->
+      <iframe id="video-player"
+        src="https://player.vimeo.com/video/1214424367?title=0&byline=0&portrait=0"
+        title="Vídeo Caverna" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen>
       </iframe>
     </div>
 
@@ -631,7 +631,7 @@ body {
 // ===================== CONFIGURAÇÃO =====================
 // TROCAR: número de WhatsApp real da Jade/Kadna, formato internacional sem espaços (ex: 5598999999999)
 const WHATSAPP_NUMBER = '5599984924945';
-const WATCH_THRESHOLD = 0.75; // 75% do vídeo assistido libera o botão
+const REVEAL_AT_SECONDS = 465; // 7min45s — momento exato da fala "clica aqui"
 
 // ===================== NAVEGAÇÃO ENTRE TELAS =====================
 function goTo(screenId) {
@@ -760,41 +760,37 @@ function initVideoTracking() {
   if (trackingStarted) return;
   trackingStarted = true;
 
-  const player = document.getElementById('yt-player');
+  const player = document.getElementById('video-player');
 
-  // Handshake com o player do YouTube via postMessage (sem depender de script externo)
-  function sendCommand(func, args) {
+  // Handshake com o player do Vimeo via postMessage (sem depender de script externo)
+  function sendCommand(method, value) {
     try {
-      player.contentWindow.postMessage(JSON.stringify({ event: 'command', func: func, args: args || [] }), '*');
+      const msg = { method: method };
+      if (value !== undefined) msg.value = value;
+      player.contentWindow.postMessage(JSON.stringify(msg), '*');
     } catch (err) {}
   }
 
-  function startListening() {
-    try {
-      player.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'yt-player', channel: 'widget' }), '*');
-    } catch (err) {}
+  function subscribeTimeupdate() {
+    sendCommand('addEventListener', 'timeupdate');
   }
 
-  player.addEventListener('load', startListening);
+  player.addEventListener('load', subscribeTimeupdate);
   // Caso o load já tenha disparado antes do listener ser anexado
-  setTimeout(startListening, 800);
+  setTimeout(subscribeTimeupdate, 800);
 
   window.addEventListener('message', function(e) {
     let data;
     try { data = JSON.parse(e.data); } catch (err) { return; }
-    if (data.event === 'infoDelivery' && data.info) {
-      if (typeof data.info.duration === 'number' && data.info.duration > 0 && typeof data.info.currentTime === 'number') {
-        const ratio = data.info.currentTime / data.info.duration;
-        updateProgress(ratio);
-      }
+    // O Vimeo avisa quando o player está pronto — reforça a inscrição no evento
+    if (data.event === 'ready') {
+      subscribeTimeupdate();
+    }
+    // A cada atualização de tempo, o Vimeo entrega os segundos já assistidos
+    if (data.event === 'timeupdate' && data.data && typeof data.data.seconds === 'number') {
+      updateProgress(data.data.seconds, data.data.duration);
     }
   });
-
-  // Polling ativo pra garantir resposta do player
-  setInterval(function() {
-    sendCommand('getCurrentTime');
-    sendCommand('getDuration');
-  }, 1000);
 
   // Rede de segurança: se em 3 minutos a lead ainda não liberou o botão
   // (ex: falha de comunicação com o player), libera mesmo assim.
@@ -803,10 +799,12 @@ function initVideoTracking() {
   }, 180000);
 }
 
-function updateProgress(ratio) {
-  const pct = Math.min(100, Math.round(ratio * 100));
-  document.getElementById('progress-fill').style.width = pct + '%';
-  if (ratio >= WATCH_THRESHOLD) {
+function updateProgress(seconds, duration) {
+  if (typeof duration === 'number' && duration > 0) {
+    const pct = Math.min(100, Math.round((seconds / duration) * 100));
+    document.getElementById('progress-fill').style.width = pct + '%';
+  }
+  if (seconds >= REVEAL_AT_SECONDS) {
     revealWhatsapp();
   }
 }
