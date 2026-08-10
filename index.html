@@ -718,6 +718,35 @@ async function saveLeadToStorage() {
   return lead;
 }
 
+// ===================== INTEGRAÇÃO HUBSPOT =====================
+const HUBSPOT_PORTAL_ID = '51856034';
+const HUBSPOT_FORM_ID = '494a758b-a3ea-4774-b46b-3c9d700f3b86';
+const HUBSPOT_ENDPOINT = 'https://api.hsforms.com/submissions/v3/integration/submit/' + HUBSPOT_PORTAL_ID + '/' + HUBSPOT_FORM_ID;
+
+async function sendToHubSpot(lead) {
+  try {
+    await fetch(HUBSPOT_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fields: [
+          { name: 'firstname', value: lead.nome },
+          { name: 'jobtitle', value: lead.nicho },
+          { name: 'industry', value: lead.momento },
+          { name: 'phone', value: lead.telefone },
+          { name: 'website', value: lead.instagram }
+        ],
+        context: {
+          pageUri: window.location.href,
+          pageName: document.title
+        }
+      })
+    });
+  } catch (err) {
+    console.error('Erro ao enviar lead pro HubSpot:', err);
+  }
+}
+
 async function submitLead() {
   const nome = document.getElementById('f-nome').value.trim();
   const instagram = document.getElementById('f-instagram').value.trim();
@@ -730,7 +759,7 @@ async function submitLead() {
   }
   document.getElementById('err-5').classList.remove('show');
 
-  await saveLeadToStorage();
+  const lead = await saveLeadToStorage();
 
   // Traduz o valor interno do momento pra um texto legível dentro da mensagem
   // (cada frase já carrega o verbo "estou" na posição certa, pra concordância ficar natural)
@@ -746,6 +775,9 @@ async function submitLead() {
     ', sou do nicho de ' + nicho + ', e ' + momentoTexto + '.';
   const waMessage = encodeURIComponent(mensagemTexto);
   document.getElementById('wa-link').href = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + waMessage;
+
+  // Envia pro HubSpot no exato momento em que a lead avança pra tela final (vídeo)
+  await sendToHubSpot(lead);
 
   // Quem chega até aqui já foi qualificada na etapa 3 (desqualificada sai antes) — segue direto pro vídeo.
   goTo('screen-video');
