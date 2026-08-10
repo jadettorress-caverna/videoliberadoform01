@@ -689,12 +689,18 @@ async function saveLeadToStorage() {
   const momento = momentoEl ? momentoEl.value : '';
   const lead = { nome, instagram, telefone, nicho, momento, timestamp: new Date().toISOString() };
 
-  // Salva localmente no artefato (útil pra conferir no painel admin durante testes)
-  try {
-    const key = 'lead:' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
-    await window.storage.set(key, JSON.stringify(lead), true);
-  } catch (err) {
-    console.error('Erro ao salvar lead localmente:', err);
+  // Salva localmente no artefato (útil pra conferir no painel admin durante testes dentro do Claude).
+  // window.storage só existe no ambiente de teste do Claude — não existe no GitHub Pages/navegador real,
+  // por isso checamos a existência antes de usar, em vez de deixar estourar um TypeError.
+  if (typeof window !== 'undefined' && window.storage && typeof window.storage.set === 'function') {
+    try {
+      const key = 'lead:' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+      await window.storage.set(key, JSON.stringify(lead), true);
+    } catch (err) {
+      console.error('Erro ao salvar lead localmente:', err);
+    }
+  } else {
+    console.warn('window.storage não disponível neste ambiente (normal fora do Claude) — pulando armazenamento local.');
   }
 
   // Envia pro Make.com em segundo plano — é isso que alimenta o Google Sheets de verdade
@@ -759,7 +765,13 @@ async function submitLead() {
   }
   document.getElementById('err-5').classList.remove('show');
 
-  const lead = await saveLeadToStorage();
+  let lead;
+  try {
+    lead = await saveLeadToStorage();
+  } catch (err) {
+    console.error('saveLeadToStorage falhou, seguindo o fluxo mesmo assim:', err);
+    lead = { nome, instagram, telefone: document.getElementById('f-telefone').value.trim(), nicho, momento: momentoEl ? momentoEl.value : '', timestamp: new Date().toISOString() };
+  }
 
   // Traduz o valor interno do momento pra um texto legível dentro da mensagem
   // (cada frase já carrega o verbo "estou" na posição certa, pra concordância ficar natural)
