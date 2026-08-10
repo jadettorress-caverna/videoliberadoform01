@@ -407,76 +407,6 @@ body {
   text-align: center;
 }
 
-/* ===== ADMIN ===== */
-.admin-toggle {
-  position: fixed;
-  bottom: 12px;
-  right: 14px;
-  font-size: 10px;
-  color: rgba(245,240,232,0.2);
-  font-family: var(--font-body);
-  cursor: pointer;
-  z-index: 50;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.admin-toggle:hover { color: rgba(245,240,232,0.5); }
-
-.admin-panel {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(10,10,8,0.97);
-  z-index: 100;
-  padding: 40px 24px;
-  overflow-y: auto;
-}
-
-.admin-panel.show { display: block; }
-
-.admin-panel h3 {
-  font-family: var(--font-display);
-  color: var(--gold);
-  font-weight: 400;
-  max-width: 800px;
-  margin: 0 auto 24px;
-}
-
-.admin-list {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.admin-lead {
-  background: var(--bg-card);
-  border: 1px solid rgba(201,168,76,0.2);
-  border-radius: 8px;
-  padding: 16px 20px;
-  margin-bottom: 12px;
-  font-size: 13px;
-  color: var(--white-dim);
-  font-family: var(--font-body);
-}
-
-.admin-lead strong { color: var(--white); }
-
-.admin-close {
-  position: fixed;
-  top: 20px;
-  right: 24px;
-  background: none;
-  border: 1px solid rgba(201,168,76,0.3);
-  color: var(--gold);
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-family: var(--font-body);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
 @media (max-width: 600px) {
   .hero-content { padding-bottom: 40px; }
   .screen { padding: 28px 20px; }
@@ -620,13 +550,6 @@ body {
   </div>
 </section>
 
-<div class="admin-toggle" onclick="toggleAdmin()">admin</div>
-<div class="admin-panel" id="admin-panel">
-  <button class="admin-close" onclick="toggleAdmin()">Fechar</button>
-  <h3>Leads capturados (protótipo — não é o CRM real)</h3>
-  <div class="admin-list" id="admin-list"></div>
-</div>
-
 <script>
 // ===================== CONFIGURAÇÃO =====================
 // TROCAR: número de WhatsApp real da Jade/Kadna, formato internacional sem espaços (ex: 5598999999999)
@@ -677,51 +600,14 @@ function handleMomentoChoice() {
   goTo('screen-form-4');
 }
 
-// URL do webhook do Make.com — recebe o lead e distribui pro Google Sheets
-const MAKE_WEBHOOK_URL = 'https://hook.us1.make.com/911m5rq0yk7ec4ay5p2l3e9q8vj57jc3';
-
-async function saveLeadToStorage() {
+function buildLead() {
   const nome = document.getElementById('f-nome').value.trim();
   const instagram = document.getElementById('f-instagram').value.trim();
   const telefone = document.getElementById('f-telefone').value.trim();
   const nicho = document.getElementById('f-nicho').value.trim();
   const momentoEl = document.querySelector('input[name="momento"]:checked');
   const momento = momentoEl ? momentoEl.value : '';
-  const lead = { nome, instagram, telefone, nicho, momento, timestamp: new Date().toISOString() };
-
-  // Salva localmente no artefato (útil pra conferir no painel admin durante testes dentro do Claude).
-  // window.storage só existe no ambiente de teste do Claude — não existe no GitHub Pages/navegador real,
-  // por isso checamos a existência antes de usar, em vez de deixar estourar um TypeError.
-  if (typeof window !== 'undefined' && window.storage && typeof window.storage.set === 'function') {
-    try {
-      const key = 'lead:' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
-      await window.storage.set(key, JSON.stringify(lead), true);
-    } catch (err) {
-      console.error('Erro ao salvar lead localmente:', err);
-    }
-  } else {
-    console.warn('window.storage não disponível neste ambiente (normal fora do Claude) — pulando armazenamento local.');
-  }
-
-  // Envia pro Make.com em segundo plano — é isso que alimenta o Google Sheets de verdade
-  try {
-    await fetch(MAKE_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nome: nome,
-        instagram: instagram,
-        telefone: telefone,
-        nicho: nicho,
-        momento: momento,
-        data: new Date().toLocaleString('pt-BR')
-      })
-    });
-  } catch (err) {
-    console.error('Erro ao enviar lead pro Make:', err);
-  }
-
-  return lead;
+  return { nome, instagram, telefone, nicho, momento, timestamp: new Date().toISOString() };
 }
 
 // ===================== INTEGRAÇÃO HUBSPOT =====================
@@ -765,13 +651,7 @@ async function submitLead() {
   }
   document.getElementById('err-5').classList.remove('show');
 
-  let lead;
-  try {
-    lead = await saveLeadToStorage();
-  } catch (err) {
-    console.error('saveLeadToStorage falhou, seguindo o fluxo mesmo assim:', err);
-    lead = { nome, instagram, telefone: document.getElementById('f-telefone').value.trim(), nicho, momento: momentoEl ? momentoEl.value : '', timestamp: new Date().toISOString() };
-  }
+  const lead = buildLead();
 
   // Traduz o valor interno do momento pra um texto legível dentro da mensagem
   // (cada frase já carrega o verbo "estou" na posição certa, pra concordância ficar natural)
@@ -862,39 +742,6 @@ function revealWhatsapp() {
   cta.classList.add('show');
   document.getElementById('cta-locked').style.display = 'none';
   if (fallbackTimer) clearTimeout(fallbackTimer);
-}
-
-// ===================== ADMIN (visualizar leads capturados) =====================
-async function toggleAdmin() {
-  const panel = document.getElementById('admin-panel');
-  if (panel.classList.contains('show')) {
-    panel.classList.remove('show');
-    return;
-  }
-  panel.classList.add('show');
-  const listEl = document.getElementById('admin-list');
-  listEl.innerHTML = '<p style="color:rgba(245,240,232,0.4); font-family:var(--font-body); font-size:13px;">Carregando...</p>';
-
-  try {
-    const result = await window.storage.list('lead:', true);
-    if (!result || !result.keys || result.keys.length === 0) {
-      listEl.innerHTML = '<p style="color:rgba(245,240,232,0.4); font-family:var(--font-body); font-size:13px;">Nenhum lead capturado ainda.</p>';
-      return;
-    }
-    const leads = [];
-    for (const key of result.keys) {
-      try {
-        const r = await window.storage.get(key, true);
-        if (r && r.value) leads.push(JSON.parse(r.value));
-      } catch (err) {}
-    }
-    leads.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-    listEl.innerHTML = leads.map(l =>
-      '<div class="admin-lead"><strong>' + l.nome + '</strong> · ' + l.instagram + ' · ' + l.telefone + '<br>Nicho: ' + (l.nicho || '—') + ' · Momento: ' + l.momento + '<br><span style="opacity:0.6;">' + l.timestamp + '</span></div>'
-    ).join('');
-  } catch (err) {
-    listEl.innerHTML = '<p style="color:#E8846A; font-family:var(--font-body); font-size:13px;">Erro ao carregar leads.</p>';
-  }
 }
 </script>
 
