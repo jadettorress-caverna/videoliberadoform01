@@ -435,7 +435,7 @@ body {
 <!-- ============ FORM — ETAPA 1: NOME ============ -->
 <section id="screen-form-1" class="screen">
   <div class="container">
-    <p class="section-label">(1/5) cadastro rápido</p>
+    <p class="section-label">(1/6) cadastro rápido</p>
     <h2 class="section-title">Qual é o seu<br><em style="color:var(--gold); font-style:italic;">nome?</em></h2>
     <div class="field">
       <input type="text" id="f-nome" placeholder="Seu nome" onkeydown="if(event.key==='Enter'){event.preventDefault(); nextStep(1);}">
@@ -448,7 +448,7 @@ body {
 <!-- ============ FORM — ETAPA 2: NICHO ============ -->
 <section id="screen-form-2" class="screen">
   <div class="container">
-    <p class="section-label">(2/5) seu tempo vale ouro</p>
+    <p class="section-label">(2/6) seu tempo vale ouro</p>
     <h2 class="section-title">Seja bem-vinda!<br><em style="color:var(--gold); font-style:italic;">Qual o seu nicho, <span class="lead-name-slot" style="color:var(--white);">guerreira</span>?</em></h2>
     <div class="field">
       <input type="text" id="f-nicho" placeholder="Ex: nutrição, terapia, consultoria financeira..." onkeydown="if(event.key==='Enter'){event.preventDefault(); nextStep(2);}">
@@ -461,7 +461,7 @@ body {
 <!-- ============ FORM — ETAPA 3: COMO VOCÊ ATUA (qualifica/desqualifica) ============ -->
 <section id="screen-form-3" class="screen">
   <div class="container">
-    <p class="section-label">(3/5) estamos na metade</p>
+    <p class="section-label">(3/6) estamos na metade</p>
     <h2 class="section-title">Perfeito, <span class="lead-name-slot" style="color:var(--gold);">guerreira</span>!<br><em style="color:var(--gold); font-style:italic;">Como você atua hoje?</em></h2>
     <div class="radio-group">
       <div class="radio-option">
@@ -485,7 +485,7 @@ body {
 <!-- ============ FORM — ETAPA 4: WHATSAPP ============ -->
 <section id="screen-form-4" class="screen">
   <div class="container">
-    <p class="section-label">(4/5) quase lá</p>
+    <p class="section-label">(4/6) quase lá</p>
     <h2 class="section-title" id="title-3">Qual o seu<br><em style="color:var(--gold); font-style:italic;">WhatsApp?</em></h2>
     <p class="hero-sub" style="text-align:center; margin-left:auto; margin-right:auto;">Ao se cadastrar, <span class="lead-name-slot" style="color:var(--gold);">guerreira</span>, você recebe nossos avisos e bônus.</p>
     <div class="field">
@@ -499,13 +499,27 @@ body {
 <!-- ============ FORM — ETAPA 5: INSTAGRAM ============ -->
 <section id="screen-form-5" class="screen">
   <div class="container">
-    <p class="section-label" id="label-4">(5/5) última etapa</p>
+    <p class="section-label">(5/6) quase lá</p>
     <h2 class="section-title" id="title-2">Qual o seu @<br><em style="color:var(--gold); font-style:italic;">no Instagram?</em></h2>
     <p class="hero-sub" style="text-align:center; margin-left:auto; margin-right:auto;">Assim também podemos nos conectar por lá, <span class="lead-name-slot" style="color:var(--gold);">guerreira</span>.</p>
     <div class="field">
-      <input type="text" id="f-instagram" placeholder="@seuperfil" onkeydown="if(event.key==='Enter'){event.preventDefault(); submitLead();}">
+      <input type="text" id="f-instagram" placeholder="@seuperfil" onkeydown="if(event.key==='Enter'){event.preventDefault(); nextStep(5);}">
     </div>
     <p class="form-error" id="err-5">Preenche seu @ pra continuar.</p>
+    <button type="button" class="btn-gold btn-gold-full" onclick="nextStep(5)">Continuar →</button>
+  </div>
+</section>
+
+<!-- ============ FORM — ETAPA 6: EMAIL ============ -->
+<section id="screen-form-6" class="screen">
+  <div class="container">
+    <p class="section-label" id="label-4">(6/6) última etapa</p>
+    <h2 class="section-title">Qual é o seu<br><em style="color:var(--gold); font-style:italic;">melhor e-mail?</em></h2>
+    <p class="hero-sub" style="text-align:center; margin-left:auto; margin-right:auto;">É por ali que a gente também vai te enviar novidades e conteúdos da Caverna.</p>
+    <div class="field">
+      <input type="email" id="f-email" placeholder="seuemail@exemplo.com" onkeydown="if(event.key==='Enter'){event.preventDefault(); submitLead();}">
+    </div>
+    <p class="form-error" id="err-6">Preenche um e-mail válido pra continuar.</p>
     <button type="button" class="btn-gold btn-gold-full" onclick="submitLead()">Continuar →</button>
   </div>
 </section>
@@ -589,6 +603,11 @@ function nextStep(step) {
     if (!v) { document.getElementById('err-4').classList.add('show'); return; }
     document.getElementById('err-4').classList.remove('show');
     goTo('screen-form-5');
+  } else if (step === 5) {
+    const v = document.getElementById('f-instagram').value.trim();
+    if (!v) { document.getElementById('err-5').classList.add('show'); return; }
+    document.getElementById('err-5').classList.remove('show');
+    goTo('screen-form-6');
   }
 }
 
@@ -608,9 +627,10 @@ function buildLead() {
   const instagram = document.getElementById('f-instagram').value.trim();
   const telefone = document.getElementById('f-telefone').value.trim();
   const nicho = document.getElementById('f-nicho').value.trim();
+  const email = document.getElementById('f-email').value.trim();
   const momentoEl = document.querySelector('input[name="momento"]:checked');
   const momento = momentoEl ? momentoEl.value : '';
-  return { nome, instagram, telefone, nicho, momento, timestamp: new Date().toISOString() };
+  return { nome, instagram, telefone, nicho, email, momento, timestamp: new Date().toISOString() };
 }
 
 // ===================== INTEGRAÇÃO HUBSPOT =====================
@@ -636,6 +656,7 @@ async function sendToHubSpot(lead) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         fields: [
+          { name: 'email', value: lead.email },
           { name: 'firstname', value: lead.nome },
           { name: 'jobtitle', value: lead.nicho },
           { name: 'industry', value: lead.momento },
@@ -654,13 +675,15 @@ async function submitLead() {
   const nome = document.getElementById('f-nome').value.trim();
   const instagram = document.getElementById('f-instagram').value.trim();
   const nicho = document.getElementById('f-nicho').value.trim();
+  const email = document.getElementById('f-email').value.trim();
   const momentoEl = document.querySelector('input[name="momento"]:checked');
 
-  if (!instagram) {
-    document.getElementById('err-5').classList.add('show');
+  const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (!emailValido) {
+    document.getElementById('err-6').classList.add('show');
     return;
   }
-  document.getElementById('err-5').classList.remove('show');
+  document.getElementById('err-6').classList.remove('show');
 
   const lead = buildLead();
 
